@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
 import torchvision.models as models
 from torchvision.utils import save_image
-from tqdm.notebook import tqdm
 
 # without the use of "convert("RGB") the image was being converted to a tensor with 4 channels 'RGBA' a for alpha layer"
 imsize = 512 if torch.cuda.is_available() else 128
@@ -77,72 +76,75 @@ def save(target, i):
     img = denormalization(img).clamp(0, 1)
     save_image(img, f'result_{i}.png')
 
-vgg = VGG().to(device).eval()
+def train(style_img,content_img):
+    vgg = VGG().to(device).eval()
 
-style_image = image_loader("./images/style/image_1.png")
-content_image = image_loader("./images/content/image_1.png")
-assert style_image.size() == content_image.size(),"content and style img need to of the the same size"
+    style_image = image_loader(style_img)
+    content_image = image_loader(content_img)
+    #assert style_image.size() == content_image.size(),"content and style img need to of the the same size"
 
-#model = models.vgg19(pretrained = True).features
-target_image = content_image.clone().requires_grad_(True)
-optimizer_1 = Adam_optimizer([target_image],0.001)
+    #model = models.vgg19(pretrained = True).features
+    target_image = content_image.clone().requires_grad_(True)
+    #optimizer_1 = Adam_optimizer([target_image],0.001)
 
-optimizer = lbfgs_optimizer(target_image)
-t_loss, s_loss, c_loss = [], [], []
-steps = 300
-beta = 1000000 
-alpha = 1
+    optimizer = lbfgs_optimizer(target_image)
+    t_loss, s_loss, c_loss = [], [], []
+    steps = 300
+    beta = 1000000 
+    alpha = 1
 
-for step in tqdm(range(steps)):
-    def closure():
+    for step in range(steps):
+        def closure():
 
-        # below this till backward() will work for adam outside of the function no need of closure in adam
-        #setting parameters to zero
-        optimizer.zero_grad()
+            # below this till backward() will work for adam outside of the function no need of closure in adam
+            #setting parameters to zero
+            optimizer.zero_grad()
 
-        #obtaining the feature vector representation for every image
-        target_feature = vgg(target_image)
-        style_feature = vgg(style_image)
-        content_feature = vgg(content_image)
-        
-        style_loss = 0
-        content_loss = 0
-
-        for target,content,style in zip(target_feature,content_feature,style_feature):
-            content_loss += get_content_loss(content,target)
-            style_loss += get_style_loss(style,target)
-
-        total_loss = alpha*content_loss + beta*style_loss
-        #compute the gradient
-        total_loss.backward()
-
-        return total_loss
-
-    #updating the parameters
-    optimizer.step(closure)
-
-    if step % 15 == 0:
-        with torch.no_grad():
+            #obtaining the feature vector representation for every image
             target_feature = vgg(target_image)
             style_feature = vgg(style_image)
             content_feature = vgg(content_image)
+            
+            style_loss = 0
+            content_loss = 0
 
-        style_loss = 0
-        content_loss = 0
+            for target,content,style in zip(target_feature,content_feature,style_feature):
+                content_loss += get_content_loss(content,target)
+                style_loss += get_style_loss(style,target)
 
-        for target, content, style in zip(target_feature, content_feature, style_feature):
-            content_loss += get_content_loss(content, target)
-            style_loss += get_style_loss(style, target)
+            total_loss = alpha*content_loss + beta*style_loss
+            #compute the gradient
+            total_loss.backward()
 
-        total_loss = alpha * content_loss + beta * style_loss
-        print(f'step: {step}, content loss: {content_loss.item():.4f}, style loss: {style_loss.item():.4f}')
-        c_loss.append(content_loss.item())
-        s_loss.append(style_loss.item())
-        t_loss.append(total_loss.item())
-    if step%30 == 0:
-        save(target_image, step)
-    
-img_show(target_image,title="output image")
+            return total_loss
+
+        #updating the parameters
+        optimizer.step(closure)
+
+        if step % 15 == 0:
+            with torch.no_grad():
+                target_feature = vgg(target_image)
+                style_feature = vgg(style_image)
+                content_feature = vgg(content_image)
+
+            style_loss = 0
+            content_loss = 0
+
+            for target, content, style in zip(target_feature, content_feature, style_feature):
+                content_loss += get_content_loss(content, target)
+                style_loss += get_style_loss(style, target)
+
+            total_loss = alpha * content_loss + beta * style_loss
+            print(f'step: {step}, content loss: {content_loss.item():.4f}, style loss: {style_loss.item():.4f}')
+            c_loss.append(content_loss.item())
+            s_loss.append(style_loss.item())
+            t_loss.append(total_loss.item())
+        if step%30 == 0:
+            save(target_image, step)
+        
+    return target_image
+
+#img_show(target_image,title="output image")
 
 def normalize(l):
     return [(x - min(l)) / (max(l) - min(l)) for x in l]

@@ -5,8 +5,9 @@ build/
 dist/
 wheels/
 *.egg-info
+*.lock
+*.toml
 
 # Virtual environments
 tgpu
 uv.lock
-pyproject.toml
