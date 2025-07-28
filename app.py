@@ -18,4 +18,4 @@ if style_image is not None and content_image is not None:
 
     target_img = train(style_image,content_image)
 
-    st.write(f"Caption: {target_img}")
+    st.write(f"Final Result: {target_img}")
