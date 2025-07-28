@@ -9,6 +9,17 @@ import torchvision.models as models
 from torchvision.utils import save_image
 from tqdm.notebook import tqdm
 
+# without the use of "convert("RGB") the image was being converted to a tensor with 4 channels 'RGBA' a for alpha layer"
+imsize = 512 if torch.cuda.is_available() else 128
+loader = transforms.Compose([transforms.Lambda(lambda img : img.convert("RGB")),
+                             transforms.Resize(imsize),
+                             transforms.ToTensor(),
+                             transforms.Normalize([0.485, 0.456, 0.406],[0.229, 0.224, 0.225])])
+unloader = transforms.ToPILImage()
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+torch.set_default_device(device)
+
 class VGG(nn.Module):
     def __init__(self):
         super().__init__()
@@ -66,23 +77,15 @@ def save(target, i):
     img = denormalization(img).clamp(0, 1)
     save_image(img, f'result_{i}.png')
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-torch.set_default_device(device)
 vgg = VGG().to(device).eval()
-
-imsize = 512 if torch.cuda.is_available() else 128
-
-# without the use of "convert("RGB") the image was being converted to a tensor with 4 channels 'RGBA' a for alpha layer"
-loader = transforms.Compose([transforms.Lambda(lambda img : img.convert("RGB")),transforms.Resize(imsize),transforms.ToTensor(),transforms.Normalize([0.485, 0.456, 0.406],[0.229, 0.224, 0.225])])
-unloader = transforms.ToPILImage()
 
 style_image = image_loader("./images/style/image_1.png")
 content_image = image_loader("./images/content/image_1.png")
 assert style_image.size() == content_image.size(),"content and style img need to of the the same size"
 
-model = models.vgg19(pretrained = True).features
+#model = models.vgg19(pretrained = True).features
 target_image = content_image.clone().requires_grad_(True)
-optimizer = Adam_optimizer([target_image],0.001)
+optimizer_1 = Adam_optimizer([target_image],0.001)
 
 optimizer = lbfgs_optimizer(target_image)
 t_loss, s_loss, c_loss = [], [], []
@@ -144,34 +147,35 @@ img_show(target_image,title="output image")
 def normalize(l):
     return [(x - min(l)) / (max(l) - min(l)) for x in l]
 
-s = [i for i in range(0,300,15)]
+def plot_loss_graphs(s_loss,c_loss,t_loss):
+    s = [i for i in range(0,300,15)]
 
-fig , axs = plt.subplots(2,2,layout='constrained',figsize=(10,8))
-cbl = axs[0][0]
-cbl.plot(s, normalize(s_loss), label='Style Loss (Normalized)')
-cbl.plot(s, normalize(c_loss), label='Content Loss (Normalized)')
-cbl.plot(s, normalize(t_loss), label='Total Loss (Normalized)')
-cbl.grid(True)
-cbl.legend()
+    fig , axs = plt.subplots(2,2,layout='constrained',figsize=(10,8))
+    cbl = axs[0][0]
+    cbl.plot(s, normalize(s_loss), label='Style Loss (Normalized)')
+    cbl.plot(s, normalize(c_loss), label='Content Loss (Normalized)')
+    cbl.plot(s, normalize(t_loss), label='Total Loss (Normalized)')
+    cbl.grid(True)
+    cbl.legend()
 
-sl = axs[0][1]
-sl.plot(s,s_loss,label='style_loss')
-sl.grid(True)
-sl.legend()
+    sl = axs[0][1]
+    sl.plot(s,s_loss,label='style_loss')
+    sl.grid(True)
+    sl.legend()
 
-cl = axs[1][0]
-cl.plot(s,c_loss,label='content loss')
-cl.grid(True)
-cl.legend()
+    cl = axs[1][0]
+    cl.plot(s,c_loss,label='content loss')
+    cl.grid(True)
+    cl.legend()
 
-tl = axs[1][1]
-tl.plot(s,t_loss,label='total loss')
-tl.grid(True)
-tl.legend()
+    tl = axs[1][1]
+    tl.plot(s,t_loss,label='total loss')
+    tl.grid(True)
+    tl.legend()
 
-tl.set_xlabel("Iterations")
-cbl.set_ylabel("Loss")
-cl.set_xlabel("Iterations")
-cl.set_ylabel("Loss")
+    tl.set_xlabel("Iterations")
+    cbl.set_ylabel("Loss")
+    cl.set_xlabel("Iterations")
+    cl.set_ylabel("Loss")
 
-plt.show()
+    plt.show()

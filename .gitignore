@@ -8,3 +8,5 @@ wheels/
 
 # Virtual environments
 tgpu
+uv.lock
+pyproject.toml
