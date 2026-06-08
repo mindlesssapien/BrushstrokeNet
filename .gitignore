@@ -1,4 +1,5 @@
 # Python-generated files
+__marimo__/
 __pycache__/
 *.py[oc]
 build/
@@ -9,5 +10,6 @@ wheels/
 *.toml
 
 # Virtual environments
-tgpu
+.venv
+nst.py
 uv.lock
