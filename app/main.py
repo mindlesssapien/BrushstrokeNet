@@ -1,6 +1,6 @@
 from fastapi import FastAPI 
-from app.routes.style_transfer import router as nst_router
+from app import routes
 
-app = FastAPI(tile="BrushStrokeNeT API")
+app = FastAPI(title="BrushStrokeNeT API")
 
-app.include_router(nst_router)
+app.include_router(routes.nst_router)
