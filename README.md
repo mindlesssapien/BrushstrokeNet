@@ -41,5 +41,5 @@ $$L_{total} = \alpha L_{content} + \beta L_{style}$$
 
 ## Acknowledgments & References
 
-* Gatys, L. A., Ecker, A. S., & Bethge, M. (2015). *A Neural Algorithm of Artistic Style*. [arXiv:1508.06576](https://www.google.com/search?q=https%3A%2F%2Farxiv.org%2Fabs%2F1508.06576).
+* Gatys, L. A., Ecker, A. S., & Bethge, M. (2015). *A Neural Algorithm of Artistic Style*. [arXiv:1508.06576](https://arxiv.org/abs/1508.06576).
 ---
