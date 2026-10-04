@@ -39,7 +39,7 @@ def main():
     runs = {
         "lbfgs_sw1e6": replace(base, optimizer="lbfgs", style_weight=1e6),
         "adam_lr0.02_sw1e6": replace(base, optimizer="adam", adam_lr=0.02, style_weight=1e6),
-        "adam_lr0.1_sw1e6": replace(base, optimizer="adam", adam_lr=0.1, style_weight=1e6),
+        "adam_lr0.01_sw1e6": replace(base, optimizer="adam", adam_lr=0.01, style_weight=1e6),
         "lbfgs_sw1e4": replace(base, optimizer="lbfgs", style_weight=1e4),
         "lbfgs_sw1e5": replace(base, optimizer="lbfgs", style_weight=1e5),
         "lbfgs_sw1e7": replace(base, optimizer="lbfgs", style_weight=1e7),
@@ -61,7 +61,7 @@ def main():
         w.writerows(rows)
 
     fig, ax = plt.subplots(1, 2, figsize=(12, 4), layout="constrained")
-    for name in ("lbfgs_sw1e6", "adam_lr0.02_sw1e6", "adam_lr0.1_sw1e6"):
+    for name in ("lbfgs_sw1e6", "adam_lr0.02_sw1e6", "adam_lr0.01_sw1e6"):
         ax[0].plot([h["total"] for h in curves[name]], label=name)
     ax[0].set(yscale="log", xlabel="loss evaluations", title="Total loss: L-BFGS vs Adam")
     for name in ("lbfgs_sw1e4", "lbfgs_sw1e5", "lbfgs_sw1e6", "lbfgs_sw1e7"):
