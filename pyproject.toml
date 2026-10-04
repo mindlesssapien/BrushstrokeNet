@@ -1,17 +1,25 @@
 [project]
 name = "BrushstrokeNet"
-version = "0.1.0"
-description = "hello there"
+version = "0.2.0"
+description = "Neural style transfer (Gatys et al.) with PyTorch and a FastAPI job API"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi[standard]>=0.135.2",
-    "marimo>=0.20.4",
-    "pandas>=3.0.1",
-    "python-multipart>=0.0.22",
+    "fastapi[standard]>=0.115",
+    "python-multipart>=0.0.9",
+    "torch>=2.2",
+    "torchvision>=0.17",
+    "pillow>=10",
+    "numpy>=1.26",
+    "matplotlib>=3.8",
 ]
 
 [dependency-groups]
 dev = [
+    "pytest>=8",
+    "httpx>=0.27",
     "ipykernel>=6.29.5",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

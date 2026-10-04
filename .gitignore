@@ -12,4 +12,10 @@ wheels/
 # Virtual environments
 .venv
 nst.py
-uv.lock
+
+# runtime outputs
+outputs/jobs/
+outputs/experiments/
+
+FIXES.md
+nst_notes.md

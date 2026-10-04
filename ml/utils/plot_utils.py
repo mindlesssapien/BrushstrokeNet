@@ -1,15 +1,20 @@
 import matplotlib.pyplot as plt
 
-def normalize(l):
-    return [(x - min(l)) / (max(l) - min(l)) for x in l]
 
-def plot_losses(style_loss, content_loss, total_loss):
-    steps = [i for i in range(0, len(style_loss)*15, 15)]
-
-    plt.figure(figsize=(10, 5))
-    plt.plot(steps, normalize(style_loss), label='Style Loss')
-    plt.plot(steps, normalize(content_loss), label='Content Loss')
-    plt.plot(steps, normalize(total_loss), label='Total Loss')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+def plot_history(history, path=None, title=None):
+    """history: list of dicts with keys step, content, style, total (as returned by run_nst)."""
+    steps = [h["step"] for h in history]
+    fig, axs = plt.subplots(1, 3, figsize=(14, 4), layout="constrained")
+    for ax, key in zip(axs, ["content", "style", "total"]):
+        ax.plot(steps, [h[key] for h in history])
+        ax.set_yscale("log")
+        ax.set_title(f"{key} loss")
+        ax.set_xlabel("loss evaluations")
+        ax.grid(True)
+    if title:
+        fig.suptitle(title)
+    if path:
+        fig.savefig(path, dpi=120)
+        plt.close(fig)
+    else:
+        plt.show()

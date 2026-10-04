@@ -1,75 +1,105 @@
-from ml.models.vgg import VGG
-from ml.utils.image_utils import image_loader, img_show
-from ml.utils.loss_utils import get_content_loss, get_style_loss
-from ml.utils.optimizer import adam_optimizer, lbfgs_optimizer, save
-from ml.utils.plot_utils import plot_losses
-import ml.config as config
+import time
+from typing import Callable, Optional
+
 import torch
-import warnings
-warnings.filterwarnings("ignore")
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-torch.backends.cudnn.benchmark = True # said that it makes traingin on gpu faster ?
+from ml import config
+from ml.config import NSTConfig
+from ml.models.vgg import VGG
+from ml.utils.image_utils import to_image, to_tensor
+from ml.utils.loss_utils import content_loss, gram_matrix, style_loss, total_variation_loss
 
-def train_nst(content_path, style_path, output_path):
-    content = image_loader(content_path)
-    style = image_loader(style_path)
+torch.backends.cudnn.benchmark = True  # input shape is fixed during one optimization
 
-    target = content.clone().requires_grad_(True).to(device)
 
-    model = VGG().to(device).eval()
+class EarlyStop(Exception):
+    pass
 
-    content_features = model(content)
-    style_features = model(style)
 
-    optimizer = lbfgs_optimizer(target)
-    # optimizer = adam_optimizer(target, lr=0.003)
+def run_nst(
+    model: VGG,
+    content_img,
+    style_img,
+    cfg: Optional[NSTConfig] = None,
+    progress: Optional[Callable[[int, int, dict], None]] = None,
+):
+    """Gatys et al. style transfer. Returns (PIL image, loss history, stats).
 
-    style_loss_list = []
-    content_loss_list = []
-    total_loss_list = []
-    step = [0]
-    num_steps = config.STEPS
+    `model` is created once by the caller and reused across requests.
+    `progress(step, total_steps, losses)` is called after every loss evaluation.
+    """
+    cfg = cfg or NSTConfig()
+    device = next(model.parameters()).device
+    torch.manual_seed(cfg.seed)
 
-    print("starting neural style transfer")
-    while step[0] < num_steps:
+    content = to_tensor(content_img, cfg.image_size, device)
+    style = to_tensor(style_img, cfg.image_size, device)
 
-        def closure():
-            optimizer.zero_grad()
+    # targets are constants: compute once, without building an autograd graph
+    with torch.no_grad():
+        _, content_feats = model(content)
+        style_feats, _ = model(style)
+        style_grams = {k: gram_matrix(v) for k, v in style_feats.items()}
 
-            target_features = model(target)
+    if cfg.init == "noise":
+        target = torch.randn_like(content)
+    else:
+        target = content.clone()
+    target.requires_grad_(True)
 
-            style_loss = 0
-            content_loss = 0
+    if cfg.optimizer == "lbfgs":
+        opt = torch.optim.LBFGS([target], max_iter=cfg.steps, line_search_fn="strong_wolfe")
+    elif cfg.optimizer == "adam":
+        opt = torch.optim.Adam([target], lr=cfg.adam_lr)
+    else:
+        raise ValueError(f"unknown optimizer {cfg.optimizer!r}")
 
-            for t, c, s in zip(target_features, content_features, style_features):
-                content_loss += get_content_loss(t, c)
-                style_loss += get_style_loss(t, s)
+    history = []
+    start = time.perf_counter()
 
-            total_loss = config.CONTENT_WEIGHT * content_loss + config.STYLE_WEIGHT * style_loss
-            total_loss.backward()
+    def closure():
+        if len(history) >= cfg.steps:
+            raise EarlyStop
+        opt.zero_grad()
+        t_style, t_content = model(target)
+        c = content_loss(t_content, content_feats, config.CONTENT_LAYERS)
+        s = style_loss(t_style, style_grams, config.STYLE_LAYERS)
+        tv = total_variation_loss(target)
+        loss = cfg.content_weight * c + cfg.style_weight * s + cfg.tv_weight * tv
+        loss.backward()
 
-            step[0] += 1
+        entry = {"step": len(history) + 1, "content": c.item(), "style": s.item(), "total": loss.item()}
+        history.append(entry)
+        if progress:
+            progress(entry["step"], cfg.steps, entry)
+        if _plateaued(history, cfg):
+            raise EarlyStop
+        return loss
 
-            style_loss_list.append(style_loss.item())
-            content_loss_list.append(content_loss.item())
-            total_loss_list.append(total_loss.item())
+    try:
+        if cfg.optimizer == "lbfgs":
+            # one call runs up to cfg.steps evaluations internally
+            while len(history) < cfg.steps:
+                opt.step(closure)
+        else:
+            while len(history) < cfg.steps:
+                opt.step(closure)
+    except EarlyStop:
+        pass
 
-            if step[0] % 50 == 0:
-                print(f"Step {step[0]}:")
-                print(f"Style Loss : {style_loss.item():.4f}")
-                print(f"Content Loss: {content_loss.item():.4f}")
-                print(f"Total Loss  : {total_loss.item():.4f}")
-                save(target, step[0])
+    stats = {
+        "evaluations": len(history),
+        "seconds": round(time.perf_counter() - start, 2),
+        "device": str(device),
+        "optimizer": cfg.optimizer,
+        "final": history[-1] if history else None,
+    }
+    return to_image(target), history, stats
 
-            return total_loss
 
-        optimizer.step(closure)
-
-    print("optimization finished!")
-
-    img_show(target, title="Final Output")
-
-    return output_path
-
-#plot_losses(style_loss_list, content_loss_list, total_loss_list)
+def _plateaued(history, cfg):
+    w = cfg.early_stop_window
+    if len(history) <= w:
+        return False
+    old, new = history[-w - 1]["total"], history[-1]["total"]
+    return (old - new) / max(abs(old), 1e-12) < cfg.early_stop_rel_tol

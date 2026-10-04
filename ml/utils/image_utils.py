@@ -1,34 +1,36 @@
-from PIL import Image
+import io
+
 import torch
-import torchvision.transforms as transforms
-import matplotlib.pyplot as plt
+import torchvision.transforms as T
+from PIL import Image
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
-imsize = 512 if torch.cuda.is_available() else 128
 
-loader = transforms.Compose([
-    transforms.Lambda(lambda img: img.convert("RGB")),
-    transforms.Resize(imsize),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406],
-                         [0.229, 0.224, 0.225])
-])
+def open_image(data: bytes) -> Image.Image:
+    """Decode and validate untrusted bytes. Raises ValueError on anything that isn't an image."""
+    try:
+        img = Image.open(io.BytesIO(data))
+        img.verify()  # cheap integrity check, invalidates the handle
+        img = Image.open(io.BytesIO(data))
+    except Exception as e:
+        raise ValueError("not a valid image") from e
+    return img.convert("RGB")  # drops alpha (RGBA PNGs) and palette modes
 
-unloader = transforms.ToPILImage()
 
-def image_loader(image_path):
-    image = Image.open(image_path)
-    image = loader(image).unsqueeze(0)
-    return image.to(device)
+def to_tensor(img: Image.Image, size: int, device) -> torch.Tensor:
+    tf = T.Compose([T.Resize(size), T.ToTensor()])  # resize shorter side, keep aspect ratio
+    x = tf(img).unsqueeze(0)
+    return ((x - MEAN) / STD).to(device)
 
-def img_show(tensor, title=None):
-    image = tensor.cpu().clone()
-    denormalization = transforms.Normalize((-2.12, -2.04, -1.80),
-                                           (4.37, 4.46, 4.44))
-    image = image.squeeze(0)
-    image = denormalization(image).clamp(0, 1)
-    image = unloader(image)
-    plt.imshow(image)
-    if title:
-        plt.title(title)
+
+def to_image(x: torch.Tensor) -> Image.Image:
+    x = x.detach().cpu() * STD + MEAN  # exact inverse of the normalization
+    return T.ToPILImage()(x.squeeze(0).clamp(0, 1))
+
+
+def to_png_bytes(img: Image.Image) -> bytes:
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
