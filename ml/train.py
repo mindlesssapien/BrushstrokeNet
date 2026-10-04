@@ -72,8 +72,8 @@ def run_nst(
         history.append(entry)
         if progress:
             progress(entry["step"], cfg.steps, entry)
-        if _plateaued(history, cfg):
-            raise EarlyStop
+        # if _plateaued(history, cfg):
+        #     raise EarlyStop
         return loss
 
     try:
@@ -97,9 +97,9 @@ def run_nst(
     return to_image(target), history, stats
 
 
-def _plateaued(history, cfg):
-    w = cfg.early_stop_window
-    if len(history) <= w:
-        return False
-    old, new = history[-w - 1]["total"], history[-1]["total"]
-    return (old - new) / max(abs(old), 1e-12) < cfg.early_stop_rel_tol
+# def _plateaued(history, cfg):
+#     w = cfg.early_stop_window
+#     if len(history) <= w:
+#         return False
+#     old, new = history[-w - 1]["total"], history[-1]["total"]
+#     return (old - new) / max(abs(old), 1e-12) < cfg.early_stop_rel_tol

@@ -27,6 +27,6 @@ def test_run_nst_survives_many_lbfgs_evaluations():
     c = Image.new("RGB", (80, 64), "red")
     s = Image.new("RGB", (64, 64), "blue")
     from ml.config import NSTConfig
-    img, hist, stats = run_nst(m, c, s, NSTConfig(image_size=64, steps=10, early_stop_rel_tol=0))
+    img, hist, stats = run_nst(m, c, s, NSTConfig(image_size=64, steps=10)) #early_stop_rel_tol=0
     assert stats["evaluations"] == 10
     assert img.size == (80, 64)  # aspect ratio and content size preserved

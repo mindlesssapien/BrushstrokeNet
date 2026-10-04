@@ -28,7 +28,7 @@ class NSTConfig:
     optimizer: str = _env("NST_OPTIMIZER", "lbfgs")  # "lbfgs" | "adam"
     adam_lr: float = _env("NST_ADAM_LR", 0.02, float)
     init: str = "content"  # "content" | "noise"
-    early_stop_rel_tol: float = 1e-4  # stop when loss improves by < 0.01% over a window
-    early_stop_window: int = 20
+    # early_stop_rel_tol: float = 1e-4  # stop when loss improves by < 0.01% over a window
+    # early_stop_window: int = 20
     seed: int = 0
     extra: dict = field(default_factory=dict)

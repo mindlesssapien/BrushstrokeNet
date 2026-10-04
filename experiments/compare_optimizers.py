@@ -35,7 +35,7 @@ def main():
     style = open_image(Path(args.style).read_bytes())
     model = VGG().to(DEVICE)
 
-    base = NSTConfig(steps=args.steps, early_stop_rel_tol=0)  # fixed budget: fair comparison
+    base = NSTConfig(steps=args.steps) #early_stop_rel_tol=0)  # fixed budget: fair comparison
     runs = {
         "lbfgs_sw1e6": replace(base, optimizer="lbfgs", style_weight=1e6),
         "adam_lr0.02_sw1e6": replace(base, optimizer="adam", adam_lr=0.02, style_weight=1e6),
