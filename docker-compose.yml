@@ -1,0 +1,36 @@
+# CPU:  docker compose up --build api
+# GPU:  docker compose up --build api-gpu      (needs nvidia-container-toolkit on the host)
+services:
+  api:
+    build: .
+    image: brushstrokenet:cpu
+    ports: ["8000:8000"]
+    environment:
+      NST_IMAGE_SIZE: "256"
+      NST_STEPS: "200"
+    volumes:
+      - outputs:/data/outputs
+    restart: unless-stopped
+
+  api-gpu:
+    build:
+      context: .
+      args:
+        TORCH_INDEX: https://download.pytorch.org/whl/cu124
+    image: brushstrokenet:gpu
+    ports: ["8000:8000"]
+    environment:
+      NST_IMAGE_SIZE: "512"
+    volumes:
+      - outputs:/data/outputs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  outputs:
