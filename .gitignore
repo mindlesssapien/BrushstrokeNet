@@ -15,7 +15,12 @@ nst.py
 
 # runtime outputs
 outputs/jobs/
-outputs/experiments/
+
+# Temporary experiment outputs
+outputs/experiments/*
+!outputs/experiments/loss_curves.png
+!outputs/experiments/style_weight_sweep.png
+!outputs/experiments/results.csvutputs/experiments/
 
 FIXES.md
 nst_notes.md
