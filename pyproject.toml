@@ -20,6 +20,25 @@ dev = [
     "httpx>=0.27",
     "ipykernel>=6.29.5",
 ]
+rocm = [
+    "pytorch-triton-rocm; sys_platform == 'linux'",
+]
+
+[tool.uv]
+default-groups = ["dev", "rocm"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+# Local dev on an AMD GPU: `uv sync` pulls PyTorch's ROCm build instead of the default
+# (NVIDIA) wheels from PyPI. Delete this block on a machine without an AMD GPU.
+# Docker ignores it and picks the build with the TORCH_INDEX build arg.
+[[tool.uv.index]]
+name = "pytorch-rocm"
+url = "https://download.pytorch.org/whl/rocm6.4"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-rocm" }
+torchvision = { index = "pytorch-rocm" }
+pytorch-triton-rocm = { index = "pytorch-rocm" }

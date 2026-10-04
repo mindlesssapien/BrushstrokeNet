@@ -28,22 +28,6 @@ cd BrushstrokeNet
 uv sync
 ```
 
-## How It Works
-
-The network optimizes a blank or noise image (or a copy of the content image) by minimizing a joint loss function:
-
-$$L_{total} = \alpha L_{content} + \beta L_{style}$$
-
-* **Content Loss ($L_{content}$):** Measures the Mean Squared Error (MSE) between the feature representations of the content image and the generated image at a deep layer (e.g., `conv4_2`).
-* **Style Loss ($L_{style}$):** Computes the MSE between the Gram Matrices (feature correlations) of the style image and the generated image across multiple layers (e.g., `conv1_1` through `conv5_1`).
-
----
-
-## Acknowledgments & References
-
-* Gatys, L. A., Ecker, A. S., & Bethge, M. (2015). *A Neural Algorithm of Artistic Style*. [arXiv:1508.06576](https://arxiv.org/abs/1508.06576).
----
-=======
 PyTorch implementation of Gatys et al., "A Neural Algorithm of Artistic Style", served as an asynchronous job API with FastAPI and packaged with Docker for CPU or GPU.
 
 ## How it works
