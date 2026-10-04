@@ -19,8 +19,7 @@ outputs/jobs/
 # Temporary experiment outputs
 outputs/experiments/*
 !outputs/experiments/loss_curves.png
-!outputs/experiments/style_weight_sweep.png
-!outputs/experiments/results.csvutputs/experiments/
+!outputs/experiments/results.csv
 
 FIXES.md
 nst_notes.md
